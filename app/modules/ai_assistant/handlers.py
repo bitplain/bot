@@ -118,5 +118,5 @@ async def _send_ai_reply(message: Message, question: str, config: AIConfig):
     await message.answer(answer)
 
 
-def setup(dispatcher: Dispatcher):
+def setup(dispatcher: Dispatcher, **_: object):
     dispatcher.include_router(router)

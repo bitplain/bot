@@ -26,7 +26,7 @@ async def main():
     dispatcher: Dispatcher = create_dispatcher()
 
     # Подключаем только нужные модули
-    register_enabled_modules(dispatcher, settings.enabled_modules)
+    register_enabled_modules(dispatcher, settings)
 
     logger.info("Бот запущен. Ожидаем обновления...")
     await dispatcher.start_polling(bot)

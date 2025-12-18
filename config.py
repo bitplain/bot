@@ -3,8 +3,9 @@
 Используется pydantic для удобного чтения переменных окружения и
 централизованного хранения настроек.
 """
-from pydantic import BaseSettings, Field
 from typing import List
+
+from pydantic import BaseSettings, Field
 
 
 class Settings(BaseSettings):
@@ -15,6 +16,11 @@ class Settings(BaseSettings):
     # Список включенных модулей. Позволяет легко отключать или подключать функционал.
     enabled_modules: List[str] = Field(
         default_factory=lambda: ["knowledge_base", "ai_assistant"]
+    )
+    # Алиасы команды открытия меню базы знаний (/Co-Fi недоступна как официальная команда,
+    # поэтому дополнительно поддерживаем текстовый ввод /co-fi, /cofi и /co_fi).
+    kb_menu_aliases: List[str] = Field(
+        default_factory=lambda: ["cofi", "co_fi", "co-fi"]
     )
     openai_api_key: str | None = Field(default=None, env="OPENAI_API_KEY")
     openai_base_url: str = Field(

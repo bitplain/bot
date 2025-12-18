@@ -2,6 +2,7 @@
 import logging
 import re
 from dataclasses import dataclass
+from typing import Iterable
 
 from aiogram import Dispatcher, Router
 from aiogram.exceptions import TelegramBadRequest
@@ -15,6 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import get_session
 from app.models import Employee
+from config import Settings
 
 router = Router(name="knowledge_base")
 logger = logging.getLogger(__name__)
@@ -51,6 +53,23 @@ class EmployeePayload:
 
 _PHONE_RE = re.compile(r"^\+?[\d\s\-()]{7,20}$")
 _EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+_MENU_TRIGGERS: set[str] = set()
+
+
+def _normalize_triggers(raw: Iterable[str] | None) -> set[str]:
+    if not raw:
+        return set()
+    normalized = set()
+    for item in raw:
+        alias = item.strip()
+        if not alias:
+            continue
+        alias = alias.lower()
+        if alias.startswith("/"):
+            normalized.add(alias)
+        else:
+            normalized.add(f"/{alias}")
+    return normalized
 
 
 def _menu_keyboard() -> InlineKeyboardMarkup:
@@ -63,8 +82,8 @@ def _menu_keyboard() -> InlineKeyboardMarkup:
     return builder.as_markup()
 
 
-@router.message(Command("Co-Fi"))
 @router.message(Command("cofi"))
+@router.message(Command("co_fi"))
 async def open_menu(message: Message, state: FSMContext):
     """Показывает главное меню работы с базой знаний."""
 
@@ -73,6 +92,13 @@ async def open_menu(message: Message, state: FSMContext):
         "Добро пожаловать в модуль базы знаний сотрудников. Выберите действие:",
         reply_markup=_menu_keyboard(),
     )
+
+
+@router.message(lambda m: (m.text or "").split()[0].lower() in _MENU_TRIGGERS)
+async def open_menu_text(message: Message, state: FSMContext):
+    """Обработчик текстовых команд вида /Co-Fi или /co-fi."""
+
+    await open_menu(message, state)
 
 
 @router.callback_query(lambda c: c.data == "kb:add")
@@ -373,7 +399,12 @@ async def _save_employee(payload: EmployeePayload) -> None:
             session.add(employee)
 
 
-def setup(dispatcher: Dispatcher):
+def setup(dispatcher: Dispatcher, settings: Settings | None = None):
     """Подключение роутера модуля."""
+
+    global _MENU_TRIGGERS
+    _MENU_TRIGGERS = _normalize_triggers(
+        settings.kb_menu_aliases if settings else ["cofi", "co_fi", "co-fi"]
+    )
 
     dispatcher.include_router(router)
