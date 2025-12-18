@@ -5,10 +5,17 @@
 """
 from typing import List
 
-from pydantic import BaseSettings, Field, validator
+from pydantic import Field, field_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        env_nested_delimiter=",",
+    )
+
     bot_token: str = Field(..., env="BOT_TOKEN")
     database_url: str = Field(
         default="sqlite+aiosqlite:///./knowledge.db", env="DATABASE_URL"
@@ -45,12 +52,7 @@ class Settings(BaseSettings):
     mail_password: str | None = Field(default=None, env="MAIL_PASSWORD")
     mail_protocol: str = Field(default="imap", env="MAIL_PROTOCOL")  # imap/pop3
 
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-        env_nested_delimiter = ","
-
-    @validator("fernet_secret", pre=True, always=True)
+    @field_validator("fernet_secret", mode="before")
     def _ensure_fernet_key(cls, value: str):  # noqa: N805 - pydantic validator
         # Пустое значение блокирует шифрование RDP, ключ генерируется отдельно.
         return value
