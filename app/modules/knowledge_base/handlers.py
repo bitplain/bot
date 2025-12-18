@@ -1,4 +1,5 @@
 """Обработчики модуля базы знаний сотрудников."""
+import logging
 import re
 from dataclasses import dataclass
 
@@ -13,6 +14,7 @@ from app.core.db import get_session
 from app.models import Employee
 
 router = Router(name="knowledge_base")
+logger = logging.getLogger(__name__)
 
 
 class AddEmployeeStates(StatesGroup):
@@ -131,7 +133,7 @@ async def input_department(message: Message, state: FSMContext):
         await message.answer(
             "Не удалось сохранить данные. Попробуйте позднее или обратитесь к администратору."
         )
-        # В реальном проекте логируем ошибку
+        logger.exception("Ошибка при сохранении сотрудника", exc_info=exc)
         await state.clear()
         return
 
@@ -158,8 +160,8 @@ async def _save_employee(payload: EmployeePayload) -> None:
             position=payload.position,
             department=payload.department,
         )
-        session.add(employee)
-        await session.commit()
+        async with session.begin():
+            session.add(employee)
 
 
 def setup(dispatcher: Dispatcher):
