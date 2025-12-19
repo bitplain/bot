@@ -80,6 +80,22 @@ SQLite (по умолчанию) или PostgreSQL/MySQL через `DATABASE_UR
    При старте создаются таблицы, включаются модули из `enabled_modules` в `config.py` или `.env`,
    подключаются middlewares для ACL, rate limit и контекста.
 
+## Деплой в Timeweb App Platform (Docker)
+1. В корне есть `Dockerfile`. Для локальной проверки:
+   ```bash
+   docker build -t timeweb-bot .
+   docker run --env-file .env timeweb-bot
+   ```
+2. В панели Timeweb выберите приложение «Контейнер из Dockerfile», укажите репозиторий и путь `Dockerfile`.
+3. В разделе переменных окружения задайте минимум:
+   - `BOT_TOKEN`
+   - `FERNET_SECRET` (>=32 символа)
+   - `DATABASE_URL` (например, `postgresql+asyncpg://user:pass@host:5432/dbname`, либо оставьте SQLite по умолчанию)
+   - `OPENAI_API_KEY` (если нужен AI routing/анализ)
+   - при необходимости: `ALLOWED_USERS`, `ENABLED_MODULES`, `KB_MENU_ALIASES`, `MAIL_*`, `CONTEXT_WINDOW_MESSAGES`, `CONTEXT_MAX_CHARS`
+4. Команда запуска в настройках: `python main.py`
+5. Для персистентного SQLite подключите volume к `/app` или используйте внешнюю БД через `DATABASE_URL`.
+
 ## Использование
 - `/ai <запрос>` — отправить текст в AI-ядро, которое выберет модуль (БЗ, почта и т.п.).
 - `/cofi` или текст `/Co-Fi` — меню базы знаний с кнопками «Добавить», «Поиск»,
