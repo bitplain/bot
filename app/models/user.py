@@ -1,5 +1,7 @@
 """Модель пользователя Telegram и RDP учётных данных."""
-from sqlalchemy import ForeignKey, Integer, String
+from datetime import datetime
+
+from sqlalchemy import DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.db import Base
@@ -11,7 +13,7 @@ class User(Base):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     telegram_id: Mapped[int] = mapped_column(Integer, unique=True, index=True)
     username: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    created_at: Mapped[str] = mapped_column(String(32), default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     rdp_credentials: Mapped[list["RDPCredential"]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
@@ -29,4 +31,3 @@ class RDPCredential(Base):
     port: Mapped[int] = mapped_column(Integer, default=3389)
 
     user: Mapped[User] = relationship(back_populates="rdp_credentials")
-

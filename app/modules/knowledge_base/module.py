@@ -47,6 +47,8 @@ class KnowledgeBaseModule(Module):
     async def store_rdp(
         self, session: AsyncSession, telegram_id: int, username: str | None, login: str, password: str, host: str, port: int
     ) -> None:
+        if self.fernet is None:
+            raise RuntimeError("FERNET_SECRET не задан, шифрование RDP недоступно.")
         user = await self._get_or_create_user(session, telegram_id, username)
         credential = RDPCredential(
             user_id=user.id,
@@ -92,4 +94,3 @@ class KnowledgeBaseModule(Module):
         await session.commit()
         await session.refresh(user)
         return user
-

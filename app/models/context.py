@@ -1,5 +1,7 @@
 """Модель истории контекста."""
-from sqlalchemy import String, Text
+from datetime import datetime
+
+from sqlalchemy import DateTime, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.db import Base
@@ -12,7 +14,4 @@ class ContextMessage(Base):
     user_id: Mapped[int] = mapped_column(index=True)
     role: Mapped[str] = mapped_column(String(32), nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
-    timestamp: Mapped[str] = mapped_column(
-        String(32), nullable=False, default=lambda: ""  # заполнится триггером БД если нужен
-    )
-
+    timestamp: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

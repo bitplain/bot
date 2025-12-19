@@ -34,28 +34,42 @@ class MailModule(Module):
         dispatcher.include_router(router)
 
     async def process(self, user_id: int, message: str) -> str:
-        return "Я могу получать почту и резюмировать письма. Используйте /mail для проверки."
+        return (
+            "Я могу получать почту и резюмировать письма. "
+            "Используйте /mail для проверки или уточните критерии поиска."
+        )
 
     def get_capabilities(self):
         return ["fetch_mail", "analyze_mail"]
 
     async def _analyze(self, mail: EmailMessage) -> str:
-        subject = mail.get("Subject", "(без темы)")
-        sender = mail.get("From", "(неизвестно)")
-        body = mail.get_payload(decode=True) or b""
-        text = body.decode(errors="ignore")
+        subject = _sanitize_header(mail.get("Subject", "(без темы)"))
+        sender = _sanitize_header(mail.get("From", "(неизвестно)"))
+        text, attachments = _extract_body_and_attachments(mail)
         if not self.client:
-            return f"Письмо от {sender} с темой '{subject}'."
+            attachments_info = (
+                f"\nВложений: {len(attachments)} ({', '.join(attachments)})"
+                if attachments
+                else ""
+            )
+            return f"Письмо от {sender} с темой '{subject}'.{attachments_info}"
         response = await self.client.chat.completions.create(
             model=self.settings.openai_model,
             messages=[
                 {
                     "role": "system",
-                    "content": "Ты помощник, который кратко классифицирует и выделяет ключевое из письма",
+                    "content": (
+                        "Ты помощник, который кратко классифицирует письмо, выделяет ключевое "
+                        "и отмечает важные вложения."
+                    ),
                 },
                 {
                     "role": "user",
-                    "content": f"Тема: {subject}\nОтправитель: {sender}\nТекст: {text[:4000]}",
+                    "content": (
+                        f"Тема: {subject}\nОтправитель: {sender}\n"
+                        f"Вложения: {', '.join(attachments) or 'нет'}\n"
+                        f"Текст: {text[:3500]}"
+                    ),
                 },
             ],
         )
@@ -93,6 +107,30 @@ def _fetch_pop3(settings: Settings, limit: int = 1) -> List[EmailMessage]:
     return mails
 
 
+def _sanitize_header(value: str) -> str:
+    return value.replace("\r", " ").replace("\n", " ").strip()
+
+
+def _extract_body_and_attachments(mail: EmailMessage) -> tuple[str, List[str]]:
+    text = ""
+    attachments: List[str] = []
+    if mail.is_multipart():
+        for part in mail.walk():
+            content_disposition = part.get("Content-Disposition", "")
+            if content_disposition and "attachment" in content_disposition.lower():
+                filename = part.get_filename()
+                if filename:
+                    attachments.append(_sanitize_header(filename))
+                continue
+            if part.get_content_type() == "text/plain" and not text:
+                payload = part.get_payload(decode=True) or b""
+                text = payload.decode(errors="ignore")
+    else:
+        payload = mail.get_payload(decode=True) or b""
+        text = payload.decode(errors="ignore")
+    return text.strip(), attachments
+
+
 @router.message(Command("mail"))
 async def check_mail(message: Message):
     settings: Settings = message.conf.get("settings")  # type: ignore[attr-defined]
@@ -105,4 +143,3 @@ async def check_mail(message: Message):
         return
     summary = await module._analyze(mails[0])
     await message.answer(summary)
-

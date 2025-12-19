@@ -44,3 +44,10 @@ async def create_db():
 
     async with _engine.begin() as conn:
         await conn.run_sync(ModelBase.metadata.create_all)
+
+
+async def dispose_engine() -> None:
+    """Корректно закрывает соединения при завершении работы."""
+
+    if _engine is not None:
+        await _engine.dispose()

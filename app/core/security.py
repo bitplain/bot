@@ -46,6 +46,7 @@ class AccessMiddleware(BaseMiddleware):
             return await handler(event, data)
         if isinstance(event, Message) and event.from_user:
             if event.from_user.id not in self.allowed:
+                await event.answer("Доступ запрещён. Обратитесь к администратору.")
                 return None
         return await handler(event, data)
 
@@ -65,6 +66,7 @@ class RateLimitMiddleware(BaseMiddleware):
             window.append(now)
             self._history[user_id] = window
             if len(window) > self.max_per_minute:
+                await event.answer("Вы отправляете сообщения слишком часто. Подождите минуту.")
                 return None
         return await handler(event, data)
 
@@ -83,4 +85,3 @@ class ContextInjectorMiddleware(BaseMiddleware):
         data["settings"] = self.settings
         data["registry"] = self.registry
         return await handler(event, data)
-
