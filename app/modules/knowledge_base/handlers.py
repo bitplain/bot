@@ -3,15 +3,11 @@ import logging
 import re
 from dataclasses import dataclass
 
-from aiogram import Dispatcher, Router
-from aiogram.filters import Command
-from aiogram.fsm.context import FSMContext
-from aiogram.fsm.state import State, StatesGroup
-from aiogram.types import Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import get_session
 from app.models import Employee
+
 
 router = Router(name="knowledge_base")
 logger = logging.getLogger(__name__)
@@ -27,6 +23,7 @@ class AddEmployeeStates(StatesGroup):
     department = State()
 
 
+
 @dataclass
 class EmployeePayload:
     last_name: str
@@ -38,8 +35,10 @@ class EmployeePayload:
     department: str
 
 
+
 _PHONE_RE = re.compile(r"^\+?[\d\s\-()]{7,20}$")
 _EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
 
 
 @router.message(Command("add"))
@@ -124,11 +123,12 @@ async def input_department(message: Message, state: FSMContext):
         return
 
     await state.update_data(department=department)
+
     data = await state.get_data()
     payload = EmployeePayload(**data)  # type: ignore[arg-type]
 
     try:
-        await _save_employee(payload)
+
     except Exception as exc:  # pragma: no cover - простая логика
         await message.answer(
             "Не удалось сохранить данные. Попробуйте позднее или обратитесь к администратору."
@@ -137,16 +137,7 @@ async def input_department(message: Message, state: FSMContext):
         await state.clear()
         return
 
-    await message.answer(
-        "Сотрудник успешно добавлен:\n"
-        f"<b>{payload.last_name} {payload.first_name}</b>\n"
-        f"Email: {payload.email}\nТелефон: {payload.phone}\n"
-        f"Должность: {payload.position}\nОтдел: {payload.department}"
-    )
-    await state.clear()
 
-
-async def _save_employee(payload: EmployeePayload) -> None:
     """Сохраняет запись в базу данных."""
 
     async for session in get_session():
@@ -163,8 +154,5 @@ async def _save_employee(payload: EmployeePayload) -> None:
         async with session.begin():
             session.add(employee)
 
-
-def setup(dispatcher: Dispatcher):
-    """Подключение роутера модуля."""
 
     dispatcher.include_router(router)

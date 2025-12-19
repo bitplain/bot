@@ -6,7 +6,7 @@ from aiogram import Dispatcher
 
 from app.core.db import create_db, init_engine
 from app.core.loader import create_bot, create_dispatcher
-from app.core.modules import register_enabled_modules
+
 from config import get_settings
 
 logging.basicConfig(
@@ -25,11 +25,7 @@ async def main():
     bot = create_bot(settings.bot_token)
     dispatcher: Dispatcher = create_dispatcher()
 
-    # Подключаем только нужные модули
-    register_enabled_modules(dispatcher, settings.enabled_modules)
 
-    logger.info("Бот запущен. Ожидаем обновления...")
-    await dispatcher.start_polling(bot)
 
 
 if __name__ == "__main__":
